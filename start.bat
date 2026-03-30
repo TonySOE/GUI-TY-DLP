@@ -1,27 +1,27 @@
 @echo off
 title yt-dlp GUI
 echo ============================================
-echo   yt-dlp GUI  -  Iniciando...
+echo   yt-dlp GUI  -  Setting up...
 echo ============================================
 
-:: Verificar Python
+:: Verify Python
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [ERROR] Python no encontrado. Instala Python 3.8+ desde python.org
+    echo [ERROR] Python not found. Please install Python 3.8+ from python.org
     pause
     exit /b 1
 )
 
-:: Instalar dependencias si no existen
+:: Install dependencies if not present
 python -c "import flask" >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Instalando dependencias...
+    echo Installing dependencies...
     pip install -r requirements.txt
 )
 
-:: Abrir navegador automaticamente
+:: Open browser after a short delay to ensure server is up
 start /B cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:5000"
 
-:: Iniciar servidor
+:: Start the Flask app (server)
 python app.py
 pause
