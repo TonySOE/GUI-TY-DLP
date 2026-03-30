@@ -38,6 +38,47 @@ function toggleArchive(el) {
     document.getElementById('archive-field').style.display = el.checked ? '' : 'none';
 }
 
+// ── Resizable Splitter ──
+(() => {
+    const splitter = document.getElementById('splitter');
+    const mainLayout = document.querySelector('.main-layout');
+    const controlsCol = document.querySelector('.controls-col');
+    const consoleCol = document.querySelector('.console-col');
+    
+    const MIN_WIDTH = 280;  // Mínimo de 280px para panel izquierdo
+    const MIN_RIGHT = 150;  // Mínimo de 150px para panel derecho
+    let isResizing = false;
+    
+    splitter.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        splitter.classList.add('active');
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'col-resize';
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        
+        const mainRect = mainLayout.getBoundingClientRect();
+        const leftX = e.clientX - mainRect.left;
+        const mainWidth = mainRect.width;
+        
+        // Respect minimum width constraints
+        const newLeftWidth = Math.max(MIN_WIDTH, Math.min(leftX, mainWidth - MIN_RIGHT - 5));
+        
+        controlsCol.style.width = newLeftWidth + 'px';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            splitter.classList.remove('active');
+            document.body.style.userSelect = 'auto';
+            document.body.style.cursor = 'auto';
+        }
+    });
+})();
+
 // ── URL clear ──
 function clearUrl() {
     document.getElementById('url').value = '';
