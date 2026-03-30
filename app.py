@@ -5,6 +5,7 @@ import queue
 import json
 import os
 import re
+import subprocess
 
 # Expresión regular para limpiar los códigos de color ANSI
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
@@ -27,10 +28,47 @@ def browse():
     from tkinter import filedialog
     root = tk.Tk()
     root.attributes("-topmost", True)
-    root.withdraw() # Oculta la ventana principal de tkinter
+    root.withdraw()
     folder = filedialog.askdirectory(title="Selecciona la carpeta de destino")
     root.destroy()
     return jsonify({'folder': folder})
+
+
+@app.route('/update', methods=['POST'])
+def update_ytdlp():
+    """Run yt-dlp -U and stream output via SSE."""
+    session_id = 'update_' + str(threading.get_ident())
+    q = queue.Queue()
+    progress_queues[session_id] = q
+
+    def run_update():
+        try:
+            proc = subprocess.Popen(
+                ['yt-dlp', '-U'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+            for line in proc.stdout:
+                line = line.strip()
+                if line:
+                    q.put(json.dumps({'type': 'log', 'msg': line}))
+            proc.wait()
+            if proc.returncode == 0:
+                q.put(json.dumps({'type': 'done', 'msg': '✓ yt-dlp updated successfully'}))
+            else:
+                q.put(json.dumps({'type': 'error', 'msg': 'Error updating yt-dlp'}))
+        except FileNotFoundError:
+            q.put(json.dumps({'type': 'error', 'msg': 'yt-dlp not found in PATH'}))
+        except Exception as e:
+            q.put(json.dumps({'type': 'error', 'msg': str(e)}))
+        finally:
+            q.put(None)
+
+    t = threading.Thread(target=run_update, daemon=True)
+    t.start()
+    return jsonify({'session_id': session_id})
+
 
 @app.route('/download', methods=['POST'])
 def download():
@@ -45,11 +83,9 @@ def download():
     progress_queues[session_id] = q
 
     def run_download():
-        # Rastrea el título del video que se está procesando actualmente
         current = {'title': None}
 
         def progress_hook(d):
-            # Guardar título del video activo para reportarlo si falla
             info = d.get('info_dict', {})
             if info.get('title'):
                 current['title'] = info['title']
@@ -57,10 +93,10 @@ def download():
             if d['status'] == 'downloading':
                 msg = {
                     'type': 'progress',
-                    'percent':   clean_ansi(d.get('_percent_str', '?%')).strip(),
-                    'speed':     clean_ansi(d.get('_speed_str',   '?')).strip(),
-                    'eta':       clean_ansi(d.get('_eta_str',     '?')).strip(),
-                    'filename':  os.path.basename(d.get('filename', '')),
+                    'percent':  clean_ansi(d.get('_percent_str', '?%')).strip(),
+                    'speed':    clean_ansi(d.get('_speed_str',   '?')).strip(),
+                    'eta':      clean_ansi(d.get('_eta_str',     '?')).strip(),
+                    'filename': os.path.basename(d.get('filename', '')),
                 }
                 q.put(json.dumps(msg))
             elif d['status'] == 'finished':
@@ -69,12 +105,11 @@ def download():
                     'filename': os.path.basename(d.get('filename', ''))
                 }))
             elif d['status'] == 'error':
-                q.put(json.dumps({'type': 'error', 'msg': str(d.get('error', 'Error desconocido'))}))
+                q.put(json.dumps({'type': 'error', 'msg': str(d.get('error', 'Unknown error'))}))
 
         opts = build_options(data)
         opts['progress_hooks'] = [progress_hook]
 
-        # Redirigir el log de yt-dlp a la cola
         class QueueLogger:
             def debug(self, msg):
                 if msg.startswith('[debug]'):
@@ -83,9 +118,8 @@ def download():
             def warning(self, msg):
                 q.put(json.dumps({'type': 'log', 'msg': f'⚠ {msg}'}))
             def error(self, msg):
-                # Agregar el título conocido al mensaje si existe
                 title_hint = f' → "{current["title"]}"' if current['title'] else ''
-                current['title'] = None  # limpiar para el siguiente video
+                current['title'] = None
                 q.put(json.dumps({'type': 'error', 'msg': msg + title_hint}))
 
         opts['logger'] = QueueLogger()
@@ -93,15 +127,14 @@ def download():
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 ydl.download([url])
-            q.put(json.dumps({'type': 'done', 'msg': '✓ Descarga completada'}))
+            q.put(json.dumps({'type': 'done', 'msg': '✓ Download complete'}))
         except Exception as e:
             q.put(json.dumps({'type': 'error', 'msg': str(e)}))
         finally:
-            q.put(None)  # Sentinel para cerrar el stream
+            q.put(None)
 
     t = threading.Thread(target=run_download, daemon=True)
     t.start()
-
     return jsonify({'session_id': session_id})
 
 
@@ -110,7 +143,7 @@ def progress(session_id):
     q = progress_queues.get(session_id)
     if not q:
         return Response(
-            'data: ' + json.dumps({'type': 'error', 'msg': 'Sesión no encontrada'}) + '\n\n',
+            'data: ' + json.dumps({'type': 'error', 'msg': 'Session not found'}) + '\n\n',
             mimetype='text/event-stream'
         )
 
@@ -134,10 +167,10 @@ def progress(session_id):
 def build_options(data):
     opts = {
         'noplaylist': not data.get('is_playlist', False),
-        'ignoreerrors': True,   # Saltar videos no disponibles en playlists
+        'ignoreerrors': True,
     }
 
-    # — Ruta de salida —
+    # — Output path —
     output_dir = data.get('output_dir', '').strip()
     if not output_dir or output_dir == '.':
         output_dir = os.path.join(os.path.expanduser('~'), 'Downloads')
@@ -154,7 +187,7 @@ def build_options(data):
 
     postprocessors = []
 
-    # — Modo audio —
+    # — Audio mode —
     if data.get('audio_only'):
         opts['format'] = 'bestaudio/best'
         postprocessors.append({
@@ -163,17 +196,35 @@ def build_options(data):
             'preferredquality': str(data.get('audio_quality', '0')),
         })
     else:
-        # Calidad de video
-        q = data.get('video_quality', 'best')
-        format_map = {
-            'best':  'bestvideo+bestaudio/best',
-            '2160':  'bestvideo[height<=2160]+bestaudio/best[height<=2160]',
-            '1080':  'bestvideo[height<=1080]+bestaudio/best[height<=1080]',
-            '720':   'bestvideo[height<=720]+bestaudio/best[height<=720]',
-            '480':   'bestvideo[height<=480]+bestaudio/best[height<=480]',
-            '360':   'bestvideo[height<=360]+bestaudio/best[height<=360]',
-        }
-        opts['format'] = format_map.get(q, 'bestvideo+bestaudio/best')
+        # Video quality + codec sort
+        resolution  = data.get('video_quality', 'best')
+        codec_key   = data.get('video_codec', 'any')
+        video_fmt   = data.get('video_format', 'mp4')
+
+        codec_map = {'av1': 'av01', 'vp9': 'vp09', 'h264': 'avc1'}
+
+        sort_params = []
+        if codec_key in codec_map:
+            sort_params.append(f'vcodec:{codec_map[codec_key]}')
+        if resolution != 'best':
+            sort_params.append(f'res:{resolution}')
+
+        if sort_params:
+            opts['format_sort'] = sort_params
+            opts['format'] = 'bestvideo+bestaudio/best'
+        else:
+            format_map = {
+                'best': 'bestvideo+bestaudio/best',
+                '2160': 'bestvideo[height<=2160]+bestaudio/best[height<=2160]',
+                '1080': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]',
+                '720':  'bestvideo[height<=720]+bestaudio/best[height<=720]',
+                '480':  'bestvideo[height<=480]+bestaudio/best[height<=480]',
+                '360':  'bestvideo[height<=360]+bestaudio/best[height<=360]',
+            }
+            opts['format'] = format_map.get(resolution, 'bestvideo+bestaudio/best')
+
+        # Container format
+        opts['merge_output_format'] = video_fmt
 
     # — Metadata —
     if data.get('embed_metadata'):
@@ -184,20 +235,15 @@ def build_options(data):
         opts['writethumbnail'] = True
         postprocessors.append({'key': 'EmbedThumbnail', 'already_have_thumbnail': False})
 
-    # — Subtítulos —
+    # — Subtitles —
     if data.get('write_subs'):
         opts['writesubtitles'] = True
     if data.get('write_auto_subs'):
         opts['writeautomaticsub'] = True
-        
-    # Si descargamos subtítulos, forzamos la conversión a SRT
-    # para eliminar las posiciones raras de YouTube y centrarlos abajo.
+
     if data.get('write_subs') or data.get('write_auto_subs'):
         opts['subtitlesformat'] = 'srt'
-        postprocessors.append({
-            'key': 'FFmpegSubtitlesConvertor',
-            'format': 'srt',
-        })
+        postprocessors.append({'key': 'FFmpegSubtitlesConvertor', 'format': 'srt'})
 
     if data.get('embed_subs'):
         opts['embedsubtitles'] = True
@@ -206,11 +252,9 @@ def build_options(data):
     if sub_langs:
         opts['subtitleslangs'] = [l.strip() for l in sub_langs.split(',') if l.strip()]
 
-    # — Archivo de archivo (archive) —
+    # — Archive —
     if data.get('use_archive'):
-        archive_path = data.get('archive_file', '').strip() or os.path.join(
-            output_dir, 'archivo.txt'
-        )
+        archive_path = data.get('archive_file', '').strip() or os.path.join(output_dir, 'archive.txt')
         opts['download_archive'] = archive_path
 
     if postprocessors:
