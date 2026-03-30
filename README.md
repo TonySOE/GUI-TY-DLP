@@ -12,7 +12,7 @@ This tool allows you to easily download videos, audio, and playlists from suppor
 - **One-Click Update:** Easily update the underlying `yt-dlp` core directly from the UI.
 
 ## How to Start (Windows)
-Simply double-click the `iniciar.bat` file. 
+Simply double-click the `start.bat` file. 
 It will automatically:
 1. Check if Python is installed.
 2. Install any missing dependencies from `requirements.txt`.
