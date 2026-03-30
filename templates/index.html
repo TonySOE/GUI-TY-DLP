@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yt-dlp GUI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">yt-dlp<span> // GUI</span></div>
+        <div class="version">local</div>
+    </header>
+
+    <div class="layout">
+
+        <!-- ══ PANEL IZQUIERDO ══ -->
+        <div class="controls">
+
+            <!-- URL -->
+            <div class="section">
+                <div class="section-header"><span class="dot"></span> URL</div>
+                <div class="section-body">
+                    <div class="url-wrap">
+                        <input type="url" id="url" placeholder="https://youtube.com/watch?v=...">
+                        <button class="url-clear" onclick="clearUrl()" title="Limpiar">×</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODO -->
+            <div class="section">
+                <div class="section-header"><span class="dot"></span> MODO</div>
+                <div class="section-body">
+                    <div class="mode-toggle">
+                        <button class="mode-btn active" id="btn-video" onclick="setMode('video')">▶ VIDEO</button>
+                        <button class="mode-btn" id="btn-audio" onclick="setMode('audio')">♫ SOLO AUDIO</button>
+                    </div>
+
+                    <!-- Opciones video -->
+                    <div id="video-opts">
+                        <label>Calidad de video</label>
+                        <select id="video_quality">
+                            <option value="best">Mejor disponible</option>
+                            <option value="2160">4K (2160p)</option>
+                            <option value="1080">Full HD (1080p)</option>
+                            <option value="720" selected>HD (720p)</option>
+                            <option value="480">SD (480p)</option>
+                            <option value="360">360p</option>
+                        </select>
+                    </div>
+
+                    <!-- Opciones audio -->
+                    <div id="audio-opts" style="display:none;">
+                        <div class="row2">
+                            <div>
+                                <label>Formato</label>
+                                <select id="audio_format">
+                                    <option value="mp3">MP3</option>
+                                    <option value="opus">Opus</option>
+                                    <option value="m4a">M4A</option>
+                                    <option value="flac">FLAC</option>
+                                    <option value="wav">WAV</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Calidad (0=mejor)</label>
+                                <select id="audio_quality">
+                                    <option value="0">0 — Mejor</option>
+                                    <option value="2">2 — Alta</option>
+                                    <option value="5">5 — Media</option>
+                                    <option value="9">9 — Baja</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OPCIONES DE CONTENIDO -->
+            <div class="section">
+                <div class="section-header"><span class="dot"></span> CONTENIDO</div>
+                <div class="section-body">
+                    <div class="check-grid">
+                        <label class="check-item" id="chk-meta">
+                            <input type="checkbox" id="embed_metadata" checked>
+                            <span class="check-box"><svg class="check-tick" viewBox="0 0 10 10">
+                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="#000" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg></span>
+                            <span class="check-label">Metadatos</span>
+                        </label>
+                        <label class="check-item" id="chk-thumb">
+                            <input type="checkbox" id="embed_thumbnail" checked>
+                            <span class="check-box"><svg class="check-tick" viewBox="0 0 10 10">
+                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="#000" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg></span>
+                            <span class="check-label">Thumbnail</span>
+                        </label>
+                        <label class="check-item" id="chk-subs">
+                            <input type="checkbox" id="write_subs" checked>
+                            <span class="check-box"><svg class="check-tick" viewBox="0 0 10 10">
+                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="#000" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg></span>
+                            <span class="check-label">Subtítulos</span>
+                        </label>
+                        <label class="check-item" id="chk-autosubs">
+                            <input type="checkbox" id="write_auto_subs" checked>
+                            <span class="check-box"><svg class="check-tick" viewBox="0 0 10 10">
+                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="#000" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg></span>
+                            <span class="check-label">Auto-subs</span>
+                        </label>
+                        <label class="check-item" id="chk-embedsubs">
+                            <input type="checkbox" id="embed_subs" checked>
+                            <span class="check-box"><svg class="check-tick" viewBox="0 0 10 10">
+                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="#000" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg></span>
+                            <span class="check-label">Incrustar subs</span>
+                        </label>
+                        <label class="check-item" id="chk-playlist">
+                            <input type="checkbox" id="is_playlist">
+                            <span class="check-box"><svg class="check-tick" viewBox="0 0 10 10">
+                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="#000" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg></span>
+                            <span class="check-label">Playlist</span>
+                        </label>
+                        <label class="check-item" id="chk-index">
+                            <input type="checkbox" id="number_playlist">
+                            <span class="check-box"><svg class="check-tick" viewBox="0 0 10 10">
+                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="#000" stroke-width="1.8"
+                                        stroke-linecap="round" />
+                                </svg></span>
+                            <span class="check-label">Numerar (01 -)</span>
+                        </label>
+                    </div>
+
+                    <!-- Idiomas de subtítulos -->
+                    <div>
+                        <label>Idiomas de subtítulos</label>
+                        <input type="text" id="sub_langs" value="es.*,en.*" placeholder="es.*,en.*">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SALIDA -->
+            <div class="section">
+                <div class="section-header"><span class="dot"></span> SALIDA</div>
+                <div class="section-body">
+                    <div>
+                        <label>Carpeta de destino</label>
+                        <div class="folder-wrap">
+                            <input type="text" id="output_dir" placeholder="Por defecto: Carpeta de Descargas" value="">
+                            <button class="btn-browse" onclick="browseFolder()" title="Seleccionar carpeta">📁</button>
+                        </div>
+                    </div>
+
+                    <div class="inline-toggle">
+                        <label>Usar archivo de registro (.txt)</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="use_archive" onchange="toggleArchive(this)">
+                            <span class="toggle-track"></span>
+                        </label>
+                    </div>
+
+                    <div id="archive-field" style="display:none;">
+                        <label>Ruta del archivo de registro</label>
+                        <input type="text" id="archive_file" placeholder="archivo.txt">
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="actions-wrapper">
+                <button class="btn-download" id="btn-download" onclick="startDownload()">
+                    ⬇ DESCARGAR
+                </button>
+                <button class="btn-stop" id="btn-stop" onclick="stopDownload()">
+                    ■ DETENER
+                </button>
+            </div>
+
+        </div><!-- /controls -->
+
+
+        <!-- ══ PANEL DERECHO (log) ══ -->
+        <div class="output-panel">
+
+            <div class="output-header">
+                <div class="output-title">
+                    <div class="status-indicator" id="status-dot"></div>
+                    OUTPUT
+                </div>
+                <button class="btn-clear-log" onclick="clearLog()">limpiar</button>
+            </div>
+
+            <div class="progress-section" id="progress-section">
+                <div class="progress-meta">
+                    <div class="progress-filename" id="prog-filename">—</div>
+                    <div class="progress-stats">
+                        <div>vel: <span id="prog-speed">—</span></div>
+                        <div>eta: <span id="prog-eta">—</span></div>
+                    </div>
+                </div>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <div class="progress-percent" id="prog-percent">0%</div>
+            </div>
+
+            <div class="log" id="log">
+                <div class="log-empty">
+                    <span class="arrow">←</span>
+                    Configura y presiona <strong>DESCARGAR</strong>
+                </div>
+            </div>
+
+        </div><!-- /output-panel -->
+
+    </div><!-- /layout -->
+
+    <script src="script.js"></script>
+</body>
+
+</html>

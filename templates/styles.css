@@ -1,0 +1,686 @@
+:root {
+    --bg: #202124;
+    --surface: #292a2d;
+    --border: #3c4043;
+    --border2: #5f6368;
+    --accent: #c58af9;
+    --accent2: #8ab4f8;
+    --danger: #f28b82;
+    --warn: #fde293;
+    --muted: #80868b;
+    --text: #e8eaed;
+    --text-dim: #9aa0a6;
+    --font-mono: 'JetBrains Mono', Consolas, monospace;
+    --font-ui: 'Google Sans', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* ── Header ── */
+header {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+}
+
+.logo {
+    font-family: var(--font-ui);
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+}
+
+.logo span {
+    color: var(--text-dim);
+    font-weight: 400;
+}
+
+.version {
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--border);
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* ── Layout ── */
+.layout {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 49px);
+}
+
+/* ── Panel izquierdo (controles) ── */
+.controls {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    align-items: stretch;
+    flex-shrink: 0;
+}
+
+.controls::-webkit-scrollbar {
+    width: 4px;
+}
+
+.controls::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.controls::-webkit-scrollbar-thumb {
+    background: var(--border2);
+    border-radius: 2px;
+}
+
+/* ── Secciones ── */
+.section {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.section-header {
+    background: var(--surface);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.section-header .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+}
+
+.section-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+/* ── Inputs ── */
+label {
+    font-size: 11px;
+    color: var(--text-dim);
+    display: block;
+    margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="url"],
+select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color .15s;
+}
+
+input[type="text"]:focus,
+input[type="url"]:focus,
+select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(197, 138, 249, .15);
+}
+
+select {
+    cursor: pointer;
+}
+
+select option {
+    background: #1a1c1e;
+}
+
+/* ── URL input especial ── */
+.url-wrap {
+    position: relative;
+}
+
+.url-wrap input {
+    padding-right: 40px;
+    font-size: 12px;
+}
+
+.url-clear {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px;
+    transition: color .15s;
+}
+
+.url-clear:hover {
+    color: var(--danger);
+}
+
+/* ── Folder input especial ── */
+.folder-wrap {
+    display: flex;
+    gap: 6px;
+}
+
+.folder-wrap input {
+    flex: 1;
+}
+
+.btn-browse {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 0 12px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+
+.btn-browse:hover {
+    border-color: var(--accent);
+    background: rgba(197, 138, 249, .08);
+}
+
+/* ── Checkboxes ── */
+.check-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: border-color .15s, background .15s;
+    user-select: none;
+}
+
+.check-item:hover {
+    border-color: var(--border2);
+    background: rgba(255, 255, 255, .02);
+}
+
+.check-item.active {
+    border-color: var(--accent);
+    background: rgba(197, 138, 249, .08);
+}
+
+.check-item input[type="checkbox"] {
+    display: none;
+}
+
+.check-box {
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--muted);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all .15s;
+}
+
+.check-item.active .check-box {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.check-tick {
+    width: 8px;
+    height: 8px;
+    opacity: 0;
+    transition: opacity .1s;
+}
+
+.check-item.active .check-tick {
+    opacity: 1;
+    stroke: var(--bg);
+}
+
+.check-label {
+    font-size: 11px;
+    color: var(--text-dim);
+}
+
+.check-item.active .check-label {
+    color: var(--text);
+}
+
+/* ── Toggle modo audio/video ── */
+.mode-toggle {
+    display: flex;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.mode-btn {
+    flex: 1;
+    padding: 6px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: .5px;
+}
+
+.mode-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 600;
+}
+
+/* ── Row de dos columnas ── */
+.row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+/* ── Inline toggle ── */
+.inline-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.inline-toggle label {
+    margin: 0;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 32px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border2);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background .2s;
+}
+
+.toggle-track::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 12px;
+    height: 12px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: transform .2s, background .2s;
+}
+
+.toggle-switch input:checked+.toggle-track {
+    background: rgba(197, 138, 249, .25);
+}
+
+.toggle-switch input:checked+.toggle-track::after {
+    transform: translateX(14px);
+    background: var(--accent);
+}
+
+/* ── Botón de descarga ── */
+.actions-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    justify-content: center;
+}
+
+.btn-download {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 24px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-download:hover {
+    background: #d4a1ff;
+    box-shadow: 0 0 15px rgba(197, 138, 249, .2);
+}
+
+.btn-download:active {
+    transform: scale(.98);
+}
+
+.btn-download:disabled {
+    background: var(--border2);
+    color: var(--muted);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.btn-stop {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: 24px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+    display: none;
+}
+
+.btn-stop:hover {
+    background: rgba(255, 68, 68, .08);
+}
+
+/* ── Panel derecho (log) ── */
+.output-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1;
+}
+
+.output-header {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    flex-shrink: 0;
+}
+
+.output-title {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-indicator {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background .3s;
+}
+
+.status-indicator.running {
+    background: var(--accent);
+    animation: pulse 1s infinite;
+}
+
+.status-indicator.done {
+    background: var(--accent);
+    animation: none;
+}
+
+.status-indicator.error {
+    background: var(--danger);
+    animation: none;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .3;
+    }
+}
+
+.btn-clear-log {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    transition: color .15s;
+}
+
+.btn-clear-log:hover {
+    color: var(--text);
+}
+
+/* ── Barra de progreso ── */
+.progress-section {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    display: none;
+}
+
+.progress-section.visible {
+    display: block;
+}
+
+.progress-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.progress-filename {
+    font-size: 11px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60%;
+}
+
+.progress-stats {
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 14px;
+}
+
+.progress-stats span {
+    color: var(--accent2);
+}
+
+.progress-bar-wrap {
+    height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    width: 0%;
+    transition: width .3s ease;
+}
+
+.progress-percent {
+    text-align: right;
+    font-size: 10px;
+    color: var(--accent);
+    margin-top: 4px;
+}
+
+/* ── Log ── */
+.log {
+    flex: 1;
+    font-family: var(--font-mono);
+    overflow-y: auto;
+    padding: 16px 20px;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.log::-webkit-scrollbar {
+    width: 4px;
+}
+
+.log::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.log::-webkit-scrollbar-thumb {
+    background: var(--border2);
+    border-radius: 2px;
+}
+
+.log-line {
+    display: flex;
+    gap: 10px;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, .02);
+    animation: fadeIn .15s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-4px);
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.log-time {
+    color: var(--muted);
+    flex-shrink: 0;
+    font-size: 10px;
+    padding-top: 2px;
+}
+
+.log-msg {
+    color: var(--text-dim);
+    word-break: break-all;
+}
+
+.log-msg.type-done {
+    color: var(--accent);
+}
+
+.log-msg.type-error {
+    color: var(--danger);
+}
+
+.log-msg.type-warn {
+    color: var(--warn);
+}
+
+.log-msg.type-info {
+    color: var(--accent2);
+}
+
+.log-msg.type-finish {
+    color: var(--accent);
+}
+
+.log-empty {
+    color: var(--muted);
+    font-size: 12px;
+    padding: 40px 0;
+    text-align: center;
+}
+
+.log-empty .arrow {
+    font-size: 24px;
+    display: block;
+    margin-bottom: 8px;
+    opacity: .3;
+}
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+    .controls {
+        overflow-y: auto;
+        max-height: 50vh;
+    }
+}

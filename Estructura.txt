@@ -1,0 +1,6 @@
+ytdlp-gui/
+├── app.py           ← servidor Flask (backend)
+├── templates/
+│   └── index.html   ← interfaz gráfica
+├── requirements.txt
+└── iniciar.bat      ← doble clic para arrancar
