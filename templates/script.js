@@ -19,15 +19,15 @@ document.querySelectorAll('.check-card').forEach(card => {
 
 // ── Media type selector ──
 function updateMediaOptions() {
-    const type = document.getElementById('media_type').value;
-    const showAudio = type === 'audio' || type === 'both';
-    const showVideo = type === 'video' || type === 'both';
+    const mediaType = document.getElementById('media_type').value;
+    const showAudioOptions = mediaType !== 'video';
+    const showVideoOptions = mediaType !== 'audio';
 
-    document.getElementById('audio-format-field').style.display  = showAudio ? '' : 'none';
-    document.getElementById('audio-quality-field').style.display = showAudio ? '' : 'none';
-    document.getElementById('video-format-field').style.display  = showVideo ? '' : 'none';
-    document.getElementById('video-quality-field').style.display = showVideo ? '' : 'none';
-    document.getElementById('video-codec-field').style.display   = showVideo ? '' : 'none';
+    document.getElementById('audio-format-field').style.display  = showAudioOptions ? '' : 'none';
+    document.getElementById('audio-quality-field').style.display = showAudioOptions ? '' : 'none';
+    document.getElementById('video-format-field').style.display  = showVideoOptions ? '' : 'none';
+    document.getElementById('video-quality-field').style.display = showVideoOptions ? '' : 'none';
+    document.getElementById('video-codec-field').style.display   = showVideoOptions ? '' : 'none';
 }
 
 // Initialize on load
@@ -118,14 +118,42 @@ async function updateTool() {
         }
 
         const es = new EventSource('/progress/' + data.session_id);
+        eventSource = es; // Assign to global var for stopping
+
         es.onmessage = e => {
             const msg = JSON.parse(e.data);
-            if (msg.type === 'log')   { addLog(msg.msg); }
-            else if (msg.type === 'done')  { addLog(msg.msg, 'done'); setStatus('done'); es.close(); resetUpdateBtn(); }
-            else if (msg.type === 'error') { addLog('✗ ' + msg.msg, 'error'); setStatus('error'); es.close(); resetUpdateBtn(); }
-            else if (msg.type === 'end')   { es.close(); resetUpdateBtn(); }
+            let terminate = false;
+            switch (msg.type) {
+                case 'log':
+                    addLog(msg.msg);
+                    break;
+                case 'done':
+                    addLog(msg.msg, 'done');
+                    setStatus('done');
+                    terminate = true;
+                    break;
+                case 'error':
+                    addLog('✗ ' + msg.msg, 'error');
+                    setStatus('error');
+                    terminate = true;
+                    break;
+                case 'end':
+                    terminate = true;
+                    break;
+            }
+            if (terminate) {
+                es.close();
+                resetUpdateBtn();
+                eventSource = null;
+            }
         };
-        es.onerror = () => { es.close(); resetUpdateBtn(); };
+        es.onerror = () => {
+            addLog('Connection to server lost', 'error');
+            setStatus('error');
+            es.close();
+            resetUpdateBtn();
+            eventSource = null;
+        };
 
     } catch (err) {
         addLog('Error: ' + err.message, 'error');
@@ -241,22 +269,29 @@ async function startDownload() {
         eventSource = new EventSource('/progress/' + data.session_id);
         eventSource.onmessage = e => {
             const msg = JSON.parse(e.data);
-            if (msg.type === 'progress') {
-                setProgress(msg.percent, msg.speed, msg.eta, msg.filename);
-            } else if (msg.type === 'finished') {
-                addLog('✓ File ready: ' + msg.filename, 'finish');
-            } else if (msg.type === 'log') {
-                addLog(msg.msg);
-            } else if (msg.type === 'error') {
-                addLog('✗ ' + msg.msg, 'error');
-            } else if (msg.type === 'done') {
-                addLog('✓ All done', 'done');
-                setStatus('done');
-                setDownloading(false);
-                eventSource.close();
-            } else if (msg.type === 'end') {
-                setDownloading(false);
-                eventSource.close();
+            switch (msg.type) {
+                case 'progress':
+                    setProgress(msg.percent, msg.speed, msg.eta, msg.filename);
+                    break;
+                case 'finished':
+                    addLog('✓ File ready: ' + msg.filename, 'finish');
+                    break;
+                case 'log':
+                    addLog(msg.msg);
+                    break;
+                case 'error':
+                    addLog('✗ ' + msg.msg, 'error');
+                    setStatus('error');
+                    break;
+                case 'done':
+                    addLog('✓ All done', 'done');
+                    setStatus('done');
+                    break;
+                case 'end':
+                    setDownloading(false);
+                    eventSource.close();
+                    eventSource = null;
+                    break;
             }
         };
         eventSource.onerror = () => {
@@ -264,6 +299,7 @@ async function startDownload() {
             setDownloading(false);
             setStatus('error');
             eventSource.close();
+            eventSource = null;
         };
     } catch (err) {
         addLog('Connection error: ' + err.message, 'error');
@@ -273,7 +309,10 @@ async function startDownload() {
 }
 
 function stopDownload() {
-    if (eventSource) eventSource.close();
+    if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+    }
     addLog('Download interrupted by user', 'warn');
     setDownloading(false);
     setStatus('idle');

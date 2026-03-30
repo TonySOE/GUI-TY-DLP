@@ -650,6 +650,13 @@ select option { background: #1a1c1e; }
 
 .app-tab:hover:not(.active) { color: var(--text-dim); }
 
+.footer-legend {
+    font-size: 0.8em;
+    color: #999;
+    margin: 0 1em;
+    /* ... cualquier otro estilo que desees ... */
+}
+
 /* ══════════════════════════════ SPLITTER ══════════════════════════════ */
 .splitter {
     width: 5px;
