@@ -80,13 +80,6 @@ function updateMediaOptions() {
     const isAudioOnly = mediaType === 'audio';
     const isVideoMode = mediaType === 'video' || mediaType === 'both';
 
-<<<<<<< Updated upstream
-    document.getElementById('audio-format-field').style.display  = showAudioOptions ? '' : 'none';
-    document.getElementById('audio-quality-field').style.display = showAudioOptions ? '' : 'none';
-    document.getElementById('video-format-field').style.display  = showVideoOptions ? '' : 'none';
-    document.getElementById('video-quality-field').style.display = showVideoOptions ? '' : 'none';
-    document.getElementById('video-codec-field').style.display   = showVideoOptions ? '' : 'none';
-=======
     // Show audio extraction settings only in Audio-Only mode
     document.getElementById('audio-format-field').style.display  = isAudioOnly ? '' : 'none';
     document.getElementById('audio-quality-field').style.display = isAudioOnly ? '' : 'none';
@@ -130,7 +123,6 @@ function updateDependentOptions() {
     document.getElementById('subs-langs-field').style.display = anySubs ? '' : 'none';
     document.getElementById('chk-embedsubs').style.display =
         (anySubs && mediaType !== 'audio') ? '' : 'none';
->>>>>>> Stashed changes
 }
 
 // Initialize on load
@@ -377,25 +369,6 @@ async function startDownload() {
 
     const payload = {
         url,
-<<<<<<< Updated upstream
-        audio_only:      mediaType === 'audio',
-        video_format:    document.getElementById('video_format').value,
-        video_quality:   document.getElementById('video_quality').value,
-        video_codec:     document.getElementById('video_codec').value,
-        audio_format:    document.getElementById('audio_format').value,
-        audio_quality:   document.getElementById('audio_quality').value,
-        embed_metadata:  document.getElementById('embed_metadata').checked,
-        embed_thumbnail: document.getElementById('embed_thumbnail').checked,
-        write_subs:      document.getElementById('write_subs').checked,
-        write_auto_subs: document.getElementById('write_auto_subs').checked,
-        embed_subs:      document.getElementById('embed_subs').checked,
-        sub_langs:       document.getElementById('sub_langs').value.trim(),
-        is_playlist:     document.getElementById('is_playlist').checked,
-        number_playlist: document.getElementById('number_playlist').checked,
-        output_dir:      document.getElementById('output_dir').value.trim(),
-        use_archive:     document.getElementById('use_archive').checked,
-        archive_file:    document.getElementById('archive_file').value.trim(),
-=======
         media_type:       mediaType,
         audio_only:       mediaType === 'audio',
         video_format:     document.getElementById('video_format').value,
@@ -415,7 +388,6 @@ async function startDownload() {
         output_dir:       document.getElementById('output_dir').value.trim(),
         use_archive:      document.getElementById('use_archive').checked,
         archive_file:     document.getElementById('archive_file').value.trim(),
->>>>>>> Stashed changes
     };
 
     try {

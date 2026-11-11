@@ -1,12 +1,9 @@
 from flask import Flask, render_template, request, Response, jsonify
 import yt_dlp
-<<<<<<< Updated upstream
-=======
 from yt_dlp.postprocessor.common import PostProcessor
 from yt_dlp.postprocessor.embedthumbnail import EmbedThumbnailPP
 from PIL import Image
 import importlib
->>>>>>> Stashed changes
 import threading
 import queue
 import json
@@ -16,8 +13,6 @@ import shutil
 import subprocess
 import sys
 
-<<<<<<< Updated upstream
-=======
 
 class SquareThumbnailPP(PostProcessor):
     """Recorta cada miniatura descargada a un cuadrado centrado (1:1).
@@ -44,7 +39,6 @@ class SquareThumbnailPP(PostProcessor):
         return [], info
 
 
->>>>>>> Stashed changes
 # Expresión regular para limpiar los códigos de color ANSI
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
@@ -253,14 +247,11 @@ def download():
 
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
-<<<<<<< Updated upstream
-=======
                 if data.get('embed_thumbnail'):
                     # Se añaden a mano para garantizar el orden: recortar primero, incrustar después.
                     if data.get('square_thumbnail') and media_type == 'audio':
                         ydl.add_post_processor(SquareThumbnailPP(ydl), when='post_process')
                     ydl.add_post_processor(EmbedThumbnailPP(ydl, already_have_thumbnail=False), when='post_process')
->>>>>>> Stashed changes
                 ydl.download([url])
 
             if cancel_ev.is_set():
@@ -314,12 +305,8 @@ def progress(session_id):
 def build_options(data):
     opts = {
         'noplaylist': not data.get('is_playlist', False),
-<<<<<<< Updated upstream
-        'ignoreerrors': True,
-=======
         'ignoreerrors': 'only_download',
         'remote_components': {'ejs:github'},
->>>>>>> Stashed changes
     }
 
     # Usar cookies solo si el archivo existe y no está vacío
@@ -421,9 +408,10 @@ def build_options(data):
         postprocessors.append({'key': 'FFmpegMetadata', 'add_metadata': True})
 
     # — Thumbnail —
+    # El post-procesador EmbedThumbnailPP se añade manualmente en run_download()
+    # para que SquareThumbnailPP se ejecute primero sin duplicar la portada.
     if data.get('embed_thumbnail'):
         opts['writethumbnail'] = True
-        postprocessors.append({'key': 'EmbedThumbnail', 'already_have_thumbnail': False})
 
     # — Subtitles —
     if data.get('write_subs'):
