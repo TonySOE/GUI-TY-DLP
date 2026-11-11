@@ -1,5 +1,6 @@
 # GUI-TY-DLP
 
+<<<<<<< Updated upstream
 A little project with the objective of using `yt-dlp` with a local graphical user interface via your web browser. 
 
 This tool allows you to easily download videos, audio, and playlists from supported sites using a modern, dark-themed UI, without needing to memorize complex command-line arguments.
@@ -45,3 +46,38 @@ It will automatically:
 
 ---
 *Disclaimer: This is a tool built for personal use.*
+=======
+Interfaz gráfica web local para **yt-dlp**, construida con **Flask** y **Vanilla JS** (Server-Sent Events) para descargar audio y vídeo de forma sencilla desde el navegador.
+
+## Características
+
+- **3 modos de descarga**:
+  - **Audio Only**: extrae la pista de audio en `mp3`, `flac`, `m4a`, `opus` o `wav` con selección de calidad VBR.
+  - **Audio + Video**: descarga y combina la mejor pista de vídeo y audio en `mp4`, `mkv` o `webm`, eligiendo resolución (hasta 4K) y códec (`AV1`, `VP9`, `H.264`).
+  - **Video Only (Muted)**: descarga únicamente el flujo de vídeo sin pista de audio.
+- **Post-procesamiento inteligente**:
+  - Incrustación de metadatos (`FFmpegMetadata`) y carátulas (`EmbedThumbnailPP`).
+  - Recorte automático de carátulas **1:1 (cuadradas)** centradas con Pillow para archivos de música.
+  - Descarga, conversión a `.srt` e incrustación de subtítulos manuales y autogenerados.
+  - Soporte para listas de reproducción con numeración opcional (`01 -`, `02 -`) y registro de descargas (`archive.txt`).
+- **Consola en tiempo real**: barra de progreso con velocidad, ETA, logs en vivo, botón **STOP** con cancelación real en el servidor y actualizador integrado de `yt-dlp`.
+- **Indicadores de entorno**: verifica automáticamente en la cabecera si `FFmpeg`, `Deno` y `www.youtube.com_cookies.txt` están activos.
+
+## Requisitos
+
+1. **Python 3.8+**
+2. **FFmpeg** instalado y disponible en el `PATH` del sistema (necesario para unir pistas de vídeo/audio, convertir formatos e incrustar carátulas).
+3. *(Recomendado)* **Deno** en el `PATH` del sistema para resolver desafíos JS de YouTube.
+4. *(Opcional)* Archivo `www.youtube.com_cookies.txt` en la raíz del proyecto para vídeos con restricción de edad o sesión.
+
+## Uso rápido
+
+En Windows, haz doble clic en **`iniciar.bat`**, o ejecuta manualmente en una terminal:
+
+```bash
+pip install -r requirements.txt
+python app.py
+```
+
+Luego abre [http://localhost:5000](http://localhost:5000) en tu navegador.
+>>>>>>> Stashed changes

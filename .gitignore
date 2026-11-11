@@ -1,0 +1,25 @@
+# Cookies y datos sensibles (NUNCA subir al repositorio)
+*cookies*.txt
+cookies.txt
+
+# Archivos de registro de descargas
+archive.txt
+
+# Entornos virtuales y caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Archivos locales / capturas / documentos sueltos
+*.pdf
+*.png
+
+# Archivos del sistema / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
