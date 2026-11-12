@@ -47,6 +47,17 @@ def clean_ansi(text):
     return ANSI_ESCAPE.sub('', text) if isinstance(text, str) else text
 
 
+def format_duration(seconds):
+    if not seconds or not isinstance(seconds, (int, float)):
+        return ''
+    seconds = int(seconds)
+    h, rem = divmod(seconds, 3600)
+    m, s = divmod(rem, 60)
+    if h > 0:
+        return f'{h}:{m:02d}:{s:02d}'
+    return f'{m:02d}:{s:02d}'
+
+
 app = Flask(__name__, static_folder='templates', static_url_path='/')
 
 # Colas de progreso y eventos de cancelación por sesión
@@ -76,6 +87,100 @@ def status_info():
         'has_deno': has_deno,
         'default_dir': os.path.join(os.path.expanduser('~'), 'Downloads'),
     })
+
+
+@app.route('/info', methods=['POST'])
+def fetch_info():
+    """Obtiene metadatos rápidos (título, miniatura, canal, duración, playlist) sin descargar."""
+    data = request.json or {}
+    url = data.get('url', '').strip()
+    if not url:
+        return jsonify({'error': 'Empty URL'}), 400
+
+    opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'skip_download': True,
+        'extract_flat': 'in_playlist',
+        'noplaylist': False,
+        'remote_components': {'ejs:github'},
+    }
+    if os.path.isfile(COOKIES_FILE) and os.path.getsize(COOKIES_FILE) > 0:
+        opts['cookiefile'] = COOKIES_FILE
+    if shutil.which('deno'):
+        opts['js_runtimes'] = {'deno': {}}
+
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            if not info:
+                return jsonify({'error': 'Could not extract info'}), 404
+
+            is_playlist = info.get('_type') == 'playlist' or 'entries' in info
+            entries = list(info.get('entries') or []) if is_playlist else []
+            playlist_count = info.get('playlist_count') or len(entries)
+
+            # Elegir la mejor miniatura disponible
+            thumb = info.get('thumbnail')
+            if not thumb and info.get('thumbnails'):
+                thumbs = [t.get('url') for t in info['thumbnails'] if t.get('url')]
+                if thumbs:
+                    thumb = thumbs[-1]
+            if not thumb and entries:
+                first = entries[0] or {}
+                thumb = first.get('thumbnail')
+                if not thumb and first.get('thumbnails'):
+                    t_list = [t.get('url') for t in first['thumbnails'] if t.get('url')]
+                    if t_list:
+                        thumb = t_list[-1]
+
+            uploader = (
+                info.get('uploader')
+                or info.get('channel')
+                or info.get('artist')
+                or (entries[0].get('uploader') if entries and isinstance(entries[0], dict) else '')
+                or ''
+            )
+
+            duration_sec = info.get('duration')
+            return jsonify({
+                'title': info.get('title') or 'Untitled',
+                'uploader': uploader,
+                'duration': format_duration(duration_sec),
+                'thumbnail': thumb or '',
+                'is_playlist': bool(is_playlist),
+                'playlist_count': playlist_count if is_playlist else 0,
+            })
+    except Exception as e:
+        return jsonify({'error': clean_ansi(str(e))}), 400
+
+
+@app.route('/open-folder', methods=['POST'])
+def open_folder():
+    """Abre la carpeta de descargas en el explorador del sistema."""
+    data = request.json or {}
+    folder = data.get('folder', '').strip()
+    if not folder or folder == '.':
+        folder = os.path.join(os.path.expanduser('~'), 'Downloads')
+
+    folder = os.path.abspath(os.path.expanduser(folder))
+    if not os.path.isdir(folder):
+        parent = os.path.dirname(folder)
+        if os.path.isdir(parent):
+            folder = parent
+        else:
+            return jsonify({'error': f'Folder does not exist: {folder}'}), 404
+
+    try:
+        if sys.platform == 'win32':
+            os.startfile(folder)
+        elif sys.platform == 'darwin':
+            subprocess.Popen(['open', folder])
+        else:
+            subprocess.Popen(['xdg-open', folder])
+        return jsonify({'opened': folder})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/browse')
@@ -408,8 +513,6 @@ def build_options(data):
         postprocessors.append({'key': 'FFmpegMetadata', 'add_metadata': True})
 
     # — Thumbnail —
-    # El post-procesador EmbedThumbnailPP se añade manualmente en run_download()
-    # para que SquareThumbnailPP se ejecute primero sin duplicar la portada.
     if data.get('embed_thumbnail'):
         opts['writethumbnail'] = True
 

@@ -2,6 +2,19 @@ let downloading = false;
 let eventSource = null;
 let currentSessionId = null;
 
+// Preview & Debounce state
+let previewTimer = null;
+let previewController = null;
+let lastPreviewUrl = '';
+
+// Console optimization state
+const MAX_LOG_LINES = 500;
+let pendingLogs = [];
+let logFlushScheduled = false;
+let autoScrollLog = true;
+
+const STORAGE_KEY = 'ytdlp_gui_settings_v1';
+
 // ── Fetch environment status on startup ──
 async function loadEnvStatus() {
     try {
@@ -50,7 +63,105 @@ async function loadEnvStatus() {
     }
 }
 
-// ── Initialize checkbox cards ──
+// ── Persistence (localStorage) ──
+const SETTING_IDS = [
+    'media_type', 'audio_format', 'audio_quality', 'video_format', 'video_quality', 'video_codec',
+    'embed_metadata', 'embed_thumbnail', 'square_thumbnail', 'is_playlist', 'number_playlist',
+    'use_archive', 'write_subs', 'write_auto_subs', 'embed_subs',
+    'sub_langs', 'archive_file', 'output_dir'
+];
+
+function saveSettings() {
+    try {
+        const data = {};
+        SETTING_IDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            data[id] = el.type === 'checkbox' ? el.checked : el.value;
+        });
+        const controlsCol = document.querySelector('.controls-col');
+        if (controlsCol && controlsCol.style.width) {
+            data._splitter_width = controlsCol.style.width;
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+        console.warn('Could not save settings:', e);
+    }
+}
+
+function loadSettings() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+
+        SETTING_IDS.forEach(id => {
+            if (!(id in data)) return;
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.type === 'checkbox') {
+                el.checked = !!data[id];
+                const card = el.closest('.check-card');
+                if (card) card.classList.toggle('active', el.checked);
+            } else {
+                el.value = data[id];
+            }
+        });
+
+        if (data.media_type) {
+            document.querySelectorAll('.mode-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === data.media_type);
+            });
+        }
+
+        if (data._splitter_width && window.innerWidth > 860) {
+            const controlsCol = document.querySelector('.controls-col');
+            if (controlsCol) controlsCol.style.width = data._splitter_width;
+        }
+    } catch (e) {
+        console.warn('Could not load saved settings:', e);
+    }
+}
+
+function resetSettings() {
+    localStorage.removeItem(STORAGE_KEY);
+    document.getElementById('audio_format').value = 'mp3';
+    document.getElementById('audio_quality').value = '0';
+    document.getElementById('video_format').value = 'mp4';
+    document.getElementById('video_quality').value = '1080';
+    document.getElementById('video_codec').value = 'av1';
+
+    const defaultChecks = {
+        embed_metadata: true,
+        embed_thumbnail: true,
+        square_thumbnail: true,
+        is_playlist: false,
+        number_playlist: false,
+        use_archive: false,
+        write_subs: true,
+        write_auto_subs: true,
+        embed_subs: true,
+    };
+
+    Object.entries(defaultChecks).forEach(([id, val]) => {
+        const cb = document.getElementById(id);
+        if (cb) {
+            cb.checked = val;
+            const card = cb.closest('.check-card');
+            if (card) card.classList.toggle('active', val);
+        }
+    });
+
+    document.getElementById('sub_langs').value = 'es.*,en.*';
+    document.getElementById('archive_file').value = '';
+    document.getElementById('output_dir').value = '';
+    document.querySelector('.controls-col').style.width = '';
+
+    selectMediaMode('audio');
+    addLog('Settings restored to defaults', 'info');
+}
+
+// ── Initialize checkbox cards & change listeners ──
 document.querySelectorAll('.check-card').forEach(card => {
     const cb = card.querySelector('input[type="checkbox"]');
     if (!cb) return;
@@ -60,7 +171,13 @@ document.querySelectorAll('.check-card').forEach(card => {
     cb.addEventListener('change', () => {
         card.classList.toggle('active', cb.checked);
         updateDependentOptions();
+        saveSettings();
     });
+});
+
+['audio_format', 'audio_quality', 'video_format', 'video_quality', 'video_codec', 'sub_langs', 'archive_file', 'output_dir'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', saveSettings);
 });
 
 // ── Media mode tabs & dependent options ──
@@ -73,6 +190,7 @@ function selectMediaMode(mode) {
     });
 
     updateMediaOptions();
+    saveSettings();
 }
 
 function updateMediaOptions() {
@@ -80,16 +198,13 @@ function updateMediaOptions() {
     const isAudioOnly = mediaType === 'audio';
     const isVideoMode = mediaType === 'video' || mediaType === 'both';
 
-    // Show audio extraction settings only in Audio-Only mode
     document.getElementById('audio-format-field').style.display  = isAudioOnly ? '' : 'none';
     document.getElementById('audio-quality-field').style.display = isAudioOnly ? '' : 'none';
 
-    // Show video container, resolution and codec in Video-Only and Audio+Video modes
     document.getElementById('video-format-field').style.display  = isVideoMode ? '' : 'none';
     document.getElementById('video-quality-field').style.display = isVideoMode ? '' : 'none';
     document.getElementById('video-codec-field').style.display   = isVideoMode ? '' : 'none';
 
-    // Hint text
     const hint = document.getElementById('media-mode-hint');
     if (hint) {
         if (mediaType === 'audio') hint.textContent = 'Extract audio stream only';
@@ -109,33 +224,162 @@ function updateDependentOptions() {
     const writeAutoSubs = document.getElementById('write_auto_subs').checked;
     const anySubs = writeSubs || writeAutoSubs;
 
-    // Square cover only applies to audio-only when embedding thumbnail
     document.getElementById('chk-square-thumb').style.display =
         (mediaType === 'audio' && embedThumb) ? '' : 'none';
 
-    // Archive file path input
     document.getElementById('archive-field').style.display = useArchive ? '' : 'none';
-
-    // Dim numeric playlist option when Playlist is unchecked
     document.getElementById('chk-index').classList.toggle('dimmed', !isPlaylist);
 
-    // Subtitle language input & Embed subs visibility
     document.getElementById('subs-langs-field').style.display = anySubs ? '' : 'none';
     document.getElementById('chk-embedsubs').style.display =
         (anySubs && mediaType !== 'audio') ? '' : 'none';
 }
 
-// Initialize on load
-updateMediaOptions();
-loadEnvStatus();
+// ── Live Media Preview & Auto Playlist Detection ──
+function checkPlaylistUrl(url) {
+    if (!url) return;
+    if (/[?&]list=[^&]+/.test(url)) {
+        const cb = document.getElementById('is_playlist');
+        if (cb && !cb.checked && url.includes('/playlist?')) {
+            cb.checked = true;
+            const card = cb.closest('.check-card');
+            if (card) card.classList.add('active');
+            updateDependentOptions();
+            saveSettings();
+            addLog('ℹ Playlist link detected — Playlist mode enabled', 'info');
+        }
+    }
+}
 
-// Press Enter in URL input to start download
-document.getElementById('url').addEventListener('keydown', e => {
+function triggerPreview(force = false) {
+    const url = document.getElementById('url').value.trim();
+    const previewEl = document.getElementById('media-preview');
+
+    if (!url || !/^https?:\/\//i.test(url)) {
+        previewEl.style.display = 'none';
+        lastPreviewUrl = '';
+        return;
+    }
+
+    checkPlaylistUrl(url);
+
+    if (!force && url === lastPreviewUrl) return;
+
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => fetchMediaPreview(url), force ? 0 : 450);
+}
+
+async function fetchMediaPreview(url) {
+    if (previewController) {
+        previewController.abort();
+    }
+    previewController = new AbortController();
+    lastPreviewUrl = url;
+
+    const previewEl = document.getElementById('media-preview');
+    const titleEl = document.getElementById('preview-title');
+    const uploaderEl = document.getElementById('preview-uploader');
+    const thumbEl = document.getElementById('preview-thumb');
+    const durEl = document.getElementById('preview-duration');
+    const badgeEl = document.getElementById('preview-badge');
+
+    previewEl.style.display = 'flex';
+    previewEl.classList.add('loading');
+    titleEl.textContent = 'Fetching media info...';
+    uploaderEl.textContent = url;
+    durEl.style.display = 'none';
+    badgeEl.textContent = 'LOADING';
+    badgeEl.classList.remove('playlist');
+
+    try {
+        const res = await fetch('/info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+            signal: previewController.signal,
+        });
+        const info = await res.json();
+        previewEl.classList.remove('loading');
+
+        if (!res.ok || info.error) {
+            previewEl.style.display = 'none';
+            return;
+        }
+
+        titleEl.textContent = info.title || 'Untitled';
+        uploaderEl.textContent = info.uploader || 'Unknown channel';
+
+        if (info.thumbnail) {
+            thumbEl.src = info.thumbnail;
+            thumbEl.style.display = 'block';
+        } else {
+            thumbEl.style.display = 'none';
+        }
+
+        if (info.duration) {
+            durEl.textContent = info.duration;
+            durEl.style.display = 'block';
+        } else {
+            durEl.style.display = 'none';
+        }
+
+        if (info.is_playlist) {
+            badgeEl.textContent = info.playlist_count ? `PLAYLIST • ${info.playlist_count} ITEMS` : 'PLAYLIST';
+            badgeEl.classList.add('playlist');
+        } else {
+            badgeEl.textContent = 'VIDEO';
+            badgeEl.classList.remove('playlist');
+        }
+    } catch (e) {
+        if (e.name !== 'AbortError') {
+            previewEl.classList.remove('loading');
+            previewEl.style.display = 'none';
+        }
+    }
+}
+
+const urlInput = document.getElementById('url');
+urlInput.addEventListener('input', () => triggerPreview(false));
+urlInput.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !downloading) {
         e.preventDefault();
         startDownload();
     }
 });
+
+// ── Drag & Drop URL support ──
+(() => {
+    const overlay = document.getElementById('drop-overlay');
+    let dragDepth = 0;
+
+    window.addEventListener('dragenter', e => {
+        e.preventDefault();
+        dragDepth++;
+        overlay.classList.add('active');
+    });
+
+    window.addEventListener('dragover', e => {
+        e.preventDefault();
+    });
+
+    window.addEventListener('dragleave', () => {
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (dragDepth === 0) overlay.classList.remove('active');
+    });
+
+    window.addEventListener('drop', e => {
+        e.preventDefault();
+        dragDepth = 0;
+        overlay.classList.remove('active');
+
+        const droppedUrl = (e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || '').trim();
+        if (droppedUrl && /^https?:\/\//i.test(droppedUrl)) {
+            urlInput.value = droppedUrl;
+            triggerPreview(true);
+            addLog('Dropped URL loaded', 'info');
+        }
+    });
+})();
 
 // ── Resizable Splitter ──
 (() => {
@@ -143,8 +387,8 @@ document.getElementById('url').addEventListener('keydown', e => {
     const mainLayout = document.querySelector('.main-layout');
     const controlsCol = document.querySelector('.controls-col');
 
-    const MIN_WIDTH = 300;
-    const MIN_RIGHT = 220;
+    const MIN_WIDTH = 320;
+    const MIN_RIGHT = 240;
     let isResizing = false;
 
     splitter.addEventListener('mousedown', () => {
@@ -172,42 +416,62 @@ document.getElementById('url').addEventListener('keydown', e => {
             splitter.classList.remove('active');
             document.body.style.userSelect = '';
             document.body.style.cursor = '';
+            saveSettings();
         }
     });
 })();
 
 // ── URL helpers ──
 function clearUrl() {
-    const input = document.getElementById('url');
-    input.value = '';
-    input.focus();
+    urlInput.value = '';
+    document.getElementById('media-preview').style.display = 'none';
+    lastPreviewUrl = '';
+    urlInput.focus();
 }
 
 async function pasteUrl() {
     try {
         const text = await navigator.clipboard.readText();
         if (text) {
-            const input = document.getElementById('url');
-            input.value = text.trim();
-            input.focus();
+            urlInput.value = text.trim();
+            urlInput.focus();
+            triggerPreview(true);
         }
     } catch (err) {
         addLog('⚠ Could not read clipboard automatically (use Ctrl+V)', 'warn');
     }
 }
 
-// ── Browse folder ──
+// ── Browse & Open folder ──
 async function browseFolder() {
     try {
         const res = await fetch('/browse');
         const data = await res.json();
         if (data.folder) {
             document.getElementById('output_dir').value = data.folder;
+            saveSettings();
         } else if (data.error) {
             addLog('⚠ Error opening folder browser: ' + data.error, 'warn');
         }
     } catch (err) {
         console.error('Error opening folder browser:', err);
+    }
+}
+
+async function openOutputFolder() {
+    const folder = document.getElementById('output_dir').value.trim();
+    try {
+        const res = await fetch('/open-folder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            addLog('⚠ ' + (data.error || 'Could not open folder'), 'warn');
+        }
+    } catch (err) {
+        addLog('⚠ Error opening folder: ' + err.message, 'warn');
     }
 }
 
@@ -295,26 +559,85 @@ function resetUpdateBtn() {
     btn.innerHTML = '<span class="update-icon">↻</span> UPDATE TOOL';
 }
 
-// ── Log helpers ──
-function addLog(msg, type = 'default') {
-    const log = document.getElementById('log');
-    const empty = log.querySelector('.log-empty');
-    if (empty) empty.remove();
+// ── Console Log Helpers (Batched & Capped DOM) ──
+const logEl = document.getElementById('log');
+const scrollBtn = document.getElementById('btn-scroll-bottom');
 
+logEl.addEventListener('scroll', () => {
+    const distanceFromBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight;
+    autoScrollLog = distanceFromBottom < 32;
+    scrollBtn.style.display = autoScrollLog ? 'none' : 'block';
+});
+
+function scrollToLogBottom() {
+    autoScrollLog = true;
+    logEl.scrollTop = logEl.scrollHeight;
+    scrollBtn.style.display = 'none';
+}
+
+function addLog(msg, type = 'default') {
     const now = new Date();
     const time = now.toTimeString().slice(0, 8);
+    pendingLogs.push({ time, msg, type });
 
-    const line = document.createElement('div');
-    line.className = 'log-line';
-    line.innerHTML = `<span class="log-time">${time}</span><span class="log-msg type-${type}">${escHtml(msg)}</span>`;
-    log.appendChild(line);
-    log.scrollTop = log.scrollHeight;
+    if (!logFlushScheduled) {
+        logFlushScheduled = true;
+        requestAnimationFrame(flushLogs);
+    }
+}
+
+function flushLogs() {
+    logFlushScheduled = false;
+    if (!pendingLogs.length) return;
+
+    const empty = logEl.querySelector('.log-empty');
+    if (empty) empty.remove();
+
+    const frag = document.createDocumentFragment();
+    for (const item of pendingLogs) {
+        const line = document.createElement('div');
+        line.className = 'log-line';
+        line.innerHTML = `<span class="log-time">${item.time}</span><span class="log-msg type-${item.type}">${escHtml(item.msg)}</span>`;
+        frag.appendChild(line);
+    }
+    pendingLogs = [];
+    logEl.appendChild(frag);
+
+    while (logEl.children.length > MAX_LOG_LINES) {
+        logEl.removeChild(logEl.firstElementChild);
+    }
+
+    if (autoScrollLog) {
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+}
+
+async function copyLog() {
+    const lines = Array.from(logEl.querySelectorAll('.log-line')).map(el => {
+        const t = el.querySelector('.log-time')?.textContent || '';
+        const m = el.querySelector('.log-msg')?.textContent || '';
+        return `${t} ${m}`;
+    });
+    if (!lines.length) return;
+
+    try {
+        await navigator.clipboard.writeText(lines.join('\n'));
+        const btn = document.getElementById('btn-copy-log');
+        const prev = btn.textContent;
+        btn.textContent = 'copied!';
+        setTimeout(() => { btn.textContent = prev; }, 1200);
+    } catch (e) {
+        addLog('⚠ Could not copy log to clipboard', 'warn');
+    }
 }
 
 function clearLog() {
-    document.getElementById('log').innerHTML =
+    pendingLogs = [];
+    logEl.innerHTML =
         '<div class="log-empty"><span class="log-arrow">←</span>Paste a URL, choose your options and press <strong>DOWNLOAD</strong></div>';
     document.getElementById('progress-section').classList.remove('visible');
+    scrollBtn.style.display = 'none';
+    autoScrollLog = true;
     setStatus('idle');
 }
 
@@ -353,10 +676,10 @@ function setDownloading(state) {
 
 // ── Download ──
 async function startDownload() {
-    const url = document.getElementById('url').value.trim();
+    const url = urlInput.value.trim();
     if (!url) {
         addLog('⚠ Enter a URL first', 'warn');
-        document.getElementById('url').focus();
+        urlInput.focus();
         return;
     }
 
@@ -475,3 +798,8 @@ async function stopDownload() {
     setDownloading(false);
     setStatus('idle');
 }
+
+// ── Startup initialization ──
+loadSettings();
+updateMediaOptions();
+loadEnvStatus();

@@ -14,6 +14,13 @@
 
 <body>
 
+    <div class="drop-overlay" id="drop-overlay">
+        <div class="drop-box">
+            <span class="drop-icon">⬇</span>
+            <span>Drop URL here to load</span>
+        </div>
+    </div>
+
     <header>
         <div class="header-left">
             <div class="logo">YT-DLP <span class="logo-tag">GUI</span></div>
@@ -25,7 +32,10 @@
             </div>
         </div>
         <div class="header-actions">
-            <button class="btn-update" id="btn-update" onclick="updateTool()">
+            <button type="button" class="btn-secondary" onclick="resetSettings()" title="Restore default settings">
+                Reset defaults
+            </button>
+            <button type="button" class="btn-update" id="btn-update" onclick="updateTool()">
                 <span class="update-icon">↻</span> UPDATE TOOL
             </button>
         </div>
@@ -36,33 +46,48 @@
         <!-- ══════════════════════════════ LEFT: Controls ══════════════════════════════ -->
         <div class="controls-col">
 
-            <!-- URL -->
+            <!-- URL + MEDIA PREVIEW -->
             <div class="card">
                 <div class="card-label">
-                    <span>URL</span>
-                    <span class="card-hint">Press Enter to start download</span>
+                    <span>SOURCE URL</span>
+                    <span class="card-hint">Paste, drag &amp; drop, or press Enter</span>
                 </div>
                 <div class="card-body single-col">
                     <div class="url-wrap">
                         <input type="url" id="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" spellcheck="false">
                         <div class="url-actions">
-                            <button type="button" class="url-paste" onclick="pasteUrl()" title="Paste from clipboard">Paste</button>
+                            <button type="button" class="url-btn" onclick="pasteUrl()" title="Paste URL from clipboard">Paste</button>
+                            <button type="button" class="url-btn icon-only" onclick="triggerPreview(true)" title="Fetch video info">🔍</button>
                             <button type="button" class="url-clear" onclick="clearUrl()" title="Clear URL">×</button>
+                        </div>
+                    </div>
+
+                    <!-- Live Media Preview Card -->
+                    <div class="media-preview" id="media-preview" style="display:none;">
+                        <div class="preview-thumb-wrap">
+                            <img id="preview-thumb" src="" alt="Thumbnail" loading="lazy">
+                            <span class="preview-duration" id="preview-duration" style="display:none;">00:00</span>
+                        </div>
+                        <div class="preview-meta">
+                            <div class="preview-badges">
+                                <span class="preview-type-badge" id="preview-badge">VIDEO</span>
+                            </div>
+                            <div class="preview-title" id="preview-title">—</div>
+                            <div class="preview-uploader" id="preview-uploader">—</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- MEDIA -->
+            <!-- MEDIA FORMAT & QUALITY -->
             <div class="card">
                 <div class="card-label">
-                    <span>MEDIA</span>
-                    <span class="card-hint" id="media-mode-hint">Audio only extraction</span>
+                    <span>MEDIA FORMAT</span>
+                    <span class="card-hint" id="media-mode-hint">Extract audio stream only</span>
                 </div>
                 <div class="card-body">
 
                     <div class="field full-row">
-                        <label for="media_type">Download mode</label>
                         <div class="mode-tabs" role="radiogroup" aria-label="Download mode">
                             <button type="button" class="mode-tab active" data-mode="audio" onclick="selectMediaMode('audio')">
                                 <span class="mode-dot"></span> Audio Only
@@ -135,152 +160,168 @@
                 </div>
             </div>
 
-            <!-- CONTENT -->
+            <!-- CONTENT & POST-PROCESSING (Categorized) -->
             <div class="card">
                 <div class="card-label">
                     <span>CONTENT &amp; POST-PROCESSING</span>
+                    <span class="card-hint">Saved automatically</span>
                 </div>
-                <div class="card-body">
+                <div class="card-body single-col">
 
-                    <div class="check-grid-4">
+                    <!-- Subgroup 1: Tags & Cover -->
+                    <div class="option-group">
+                        <div class="group-title">Tags &amp; Cover Art</div>
+                        <div class="check-grid-3">
+                            <label class="check-card active" id="chk-meta">
+                                <input type="checkbox" id="embed_metadata" checked>
+                                <div class="chk-icon-wrap">
+                                    <svg class="chk-svg" viewBox="0 0 10 10">
+                                        <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
+                                            stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                                <div class="chk-info">
+                                    <span class="chk-name">Metadata</span>
+                                    <span class="chk-desc">Artist, title, date &amp; tags</span>
+                                </div>
+                            </label>
 
-                        <label class="check-card active" id="chk-meta">
-                            <input type="checkbox" id="embed_metadata" checked>
-                            <div class="chk-icon-wrap">
-                                <svg class="chk-svg" viewBox="0 0 10 10">
-                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
-                                        stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </div>
-                            <div class="chk-info">
-                                <span class="chk-name">Metadata</span>
-                                <span class="chk-desc">Artist, title, date &amp; tags</span>
-                            </div>
-                        </label>
+                            <label class="check-card active" id="chk-thumb">
+                                <input type="checkbox" id="embed_thumbnail" checked>
+                                <div class="chk-icon-wrap">
+                                    <svg class="chk-svg" viewBox="0 0 10 10">
+                                        <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
+                                            stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                                <div class="chk-info">
+                                    <span class="chk-name">Thumbnail</span>
+                                    <span class="chk-desc">Embed cover art in file</span>
+                                </div>
+                            </label>
 
-                        <label class="check-card active" id="chk-thumb">
-                            <input type="checkbox" id="embed_thumbnail" checked>
-                            <div class="chk-icon-wrap">
-                                <svg class="chk-svg" viewBox="0 0 10 10">
-                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
-                                        stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </div>
-                            <div class="chk-info">
-                                <span class="chk-name">Thumbnail</span>
-                                <span class="chk-desc">Embed cover art in file</span>
-                            </div>
-                        </label>
-
-                        <label class="check-card active" id="chk-square-thumb">
-                            <input type="checkbox" id="square_thumbnail" checked>
-                            <div class="chk-icon-wrap">
-                                <svg class="chk-svg" viewBox="0 0 10 10">
-                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
-                                        stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </div>
-                            <div class="chk-info">
-                                <span class="chk-name">Square cover (1:1)</span>
-                                <span class="chk-desc">Center-crop 16:9 for audio</span>
-                            </div>
-                        </label>
-
-                        <label class="check-card" id="chk-playlist">
-                            <input type="checkbox" id="is_playlist">
-                            <div class="chk-icon-wrap">
-                                <svg class="chk-svg" viewBox="0 0 10 10">
-                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
-                                        stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </div>
-                            <div class="chk-info">
-                                <span class="chk-name">Playlist</span>
-                                <span class="chk-desc">Download full playlist</span>
-                            </div>
-                        </label>
-
-                        <label class="check-card" id="chk-index">
-                            <input type="checkbox" id="number_playlist">
-                            <div class="chk-icon-wrap">
-                                <svg class="chk-svg" viewBox="0 0 10 10">
-                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
-                                        stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </div>
-                            <div class="chk-info">
-                                <span class="chk-name">Numeric list</span>
-                                <span class="chk-desc">Prefix 01 -, 02 - in playlist</span>
-                            </div>
-                        </label>
-
-                        <label class="check-card" id="chk-archive">
-                            <input type="checkbox" id="use_archive">
-                            <div class="chk-icon-wrap">
-                                <svg class="chk-svg" viewBox="0 0 10 10">
-                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
-                                        stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </div>
-                            <div class="chk-info">
-                                <span class="chk-name">Download archive</span>
-                                <span class="chk-desc">Skip already downloaded</span>
-                            </div>
-                        </label>
-                        <label class="check-card active" id="chk-subs">
-                            <input type="checkbox" id="write_subs" checked>
-                            <div class="chk-icon-wrap">
-                                <svg class="chk-svg" viewBox="0 0 10 10">
-                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
-                                        stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </div>
-                            <div class="chk-info">
-                                <span class="chk-name">Subtitles</span>
-                                <span class="chk-desc">Download manual .srt subs</span>
-                            </div>
-                        </label>
-
-                        <label class="check-card active" id="chk-autosubs">
-                            <input type="checkbox" id="write_auto_subs" checked>
-                            <div class="chk-icon-wrap">
-                                <svg class="chk-svg" viewBox="0 0 10 10">
-                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
-                                        stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </div>
-                            <div class="chk-info">
-                                <span class="chk-name">Auto-subs</span>
-                                <span class="chk-desc">Include auto-generated subs</span>
-                            </div>
-                        </label>
-
-                        <label class="check-card active" id="chk-embedsubs">
-                            <input type="checkbox" id="embed_subs" checked>
-                            <div class="chk-icon-wrap">
-                                <svg class="chk-svg" viewBox="0 0 10 10">
-                                    <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
-                                        stroke-width="1.8" stroke-linecap="round" />
-                                </svg>
-                            </div>
-                            <div class="chk-info">
-                                <span class="chk-name">Embed subs</span>
-                                <span class="chk-desc">Mux subtitles into video</span>
-                            </div>
-                        </label>
-
+                            <label class="check-card active" id="chk-square-thumb">
+                                <input type="checkbox" id="square_thumbnail" checked>
+                                <div class="chk-icon-wrap">
+                                    <svg class="chk-svg" viewBox="0 0 10 10">
+                                        <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
+                                            stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                                <div class="chk-info">
+                                    <span class="chk-name">Square cover (1:1)</span>
+                                    <span class="chk-desc">Center-crop 16:9 for audio</span>
+                                </div>
+                            </label>
+                        </div>
                     </div>
 
-                    <!-- Subtitle languages -->
-                    <div class="field" id="subs-langs-field">
-                        <label for="sub_langs">Subtitle languages (comma-separated regex/codes)</label>
-                        <input type="text" id="sub_langs" value="es.*,en.*" placeholder="es.*,en.*">
+                    <!-- Subgroup 2: Playlist & Archive -->
+                    <div class="option-group">
+                        <div class="group-title">Playlist &amp; History</div>
+                        <div class="check-grid-3">
+                            <label class="check-card" id="chk-playlist">
+                                <input type="checkbox" id="is_playlist">
+                                <div class="chk-icon-wrap">
+                                    <svg class="chk-svg" viewBox="0 0 10 10">
+                                        <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
+                                            stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                                <div class="chk-info">
+                                    <span class="chk-name">Playlist</span>
+                                    <span class="chk-desc">Download full playlist</span>
+                                </div>
+                            </label>
+
+                            <label class="check-card" id="chk-index">
+                                <input type="checkbox" id="number_playlist">
+                                <div class="chk-icon-wrap">
+                                    <svg class="chk-svg" viewBox="0 0 10 10">
+                                        <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
+                                            stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                                <div class="chk-info">
+                                    <span class="chk-name">Numeric list</span>
+                                    <span class="chk-desc">Prefix 01 -, 02 - in playlist</span>
+                                </div>
+                            </label>
+
+                            <label class="check-card" id="chk-archive">
+                                <input type="checkbox" id="use_archive">
+                                <div class="chk-icon-wrap">
+                                    <svg class="chk-svg" viewBox="0 0 10 10">
+                                        <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
+                                            stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                                <div class="chk-info">
+                                    <span class="chk-name">Download archive</span>
+                                    <span class="chk-desc">Skip already downloaded</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Archive path -->
+                        <div class="field sub-field" id="archive-field" style="display:none;">
+                            <label for="archive_file">Archive register file (.txt)</label>
+                            <input type="text" id="archive_file" placeholder="Default: <output_dir>/archive.txt">
+                        </div>
                     </div>
 
-                    <!-- Archive path -->
-                    <div class="field" id="archive-field" style="display:none;">
-                        <label for="archive_file">Archive register file (.txt)</label>
-                        <input type="text" id="archive_file" placeholder="Default: <output_dir>/archive.txt">
+                    <!-- Subgroup 3: Subtitles -->
+                    <div class="option-group">
+                        <div class="group-title">Subtitles &amp; Captions</div>
+                        <div class="check-grid-3">
+                            <label class="check-card active" id="chk-subs">
+                                <input type="checkbox" id="write_subs" checked>
+                                <div class="chk-icon-wrap">
+                                    <svg class="chk-svg" viewBox="0 0 10 10">
+                                        <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
+                                            stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                                <div class="chk-info">
+                                    <span class="chk-name">Subtitles</span>
+                                    <span class="chk-desc">Download manual .srt subs</span>
+                                </div>
+                            </label>
+
+                            <label class="check-card active" id="chk-autosubs">
+                                <input type="checkbox" id="write_auto_subs" checked>
+                                <div class="chk-icon-wrap">
+                                    <svg class="chk-svg" viewBox="0 0 10 10">
+                                        <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
+                                            stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                                <div class="chk-info">
+                                    <span class="chk-name">Auto-subs</span>
+                                    <span class="chk-desc">Include auto-generated subs</span>
+                                </div>
+                            </label>
+
+                            <label class="check-card active" id="chk-embedsubs">
+                                <input type="checkbox" id="embed_subs" checked>
+                                <div class="chk-icon-wrap">
+                                    <svg class="chk-svg" viewBox="0 0 10 10">
+                                        <polyline points="1.5,5.5 4,8 8.5,2" fill="none" stroke="currentColor"
+                                            stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                                <div class="chk-info">
+                                    <span class="chk-name">Embed subs</span>
+                                    <span class="chk-desc">Mux subtitles into video</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Subtitle languages -->
+                        <div class="field sub-field" id="subs-langs-field">
+                            <label for="sub_langs">Subtitle languages (comma-separated regex/codes)</label>
+                            <input type="text" id="sub_langs" value="es.*,en.*" placeholder="es.*,en.*">
+                        </div>
                     </div>
 
                 </div>
@@ -293,10 +334,13 @@
                 </div>
                 <div class="card-body single-col">
                     <div class="folder-wrap">
-                        <button type="button" class="btn-browse-folder" onclick="browseFolder()">
-                            📁 Browse folder
+                        <button type="button" class="btn-browse-folder" onclick="browseFolder()" title="Select destination folder">
+                            📁 Browse
                         </button>
                         <input type="text" id="output_dir" placeholder="Default: Downloads folder">
+                        <button type="button" class="btn-browse-folder" onclick="openOutputFolder()" title="Open folder in file explorer">
+                            📂 Open
+                        </button>
                     </div>
                 </div>
             </div>
@@ -314,7 +358,10 @@
                     <div class="status-dot" id="status-dot"></div>
                     CONSOLE <span class="console-sub" id="status-label">(idle)</span>
                 </div>
-                <button class="btn-clear-log" onclick="clearLog()">clear</button>
+                <div class="console-actions">
+                    <button type="button" class="btn-clear-log" id="btn-copy-log" onclick="copyLog()" title="Copy log to clipboard">copy</button>
+                    <button type="button" class="btn-clear-log" onclick="clearLog()" title="Clear console">clear</button>
+                </div>
             </div>
 
             <div class="progress-wrap" id="progress-section">
@@ -331,16 +378,21 @@
                 </div>
             </div>
 
-            <div class="log" id="log">
-                <div class="log-empty">
-                    <span class="log-arrow">←</span>
-                    Paste a URL, choose your options and press <strong>DOWNLOAD</strong>
+            <div class="log-container">
+                <div class="log" id="log">
+                    <div class="log-empty">
+                        <span class="log-arrow">←</span>
+                        Paste a URL, choose your options and press <strong>DOWNLOAD</strong>
+                    </div>
                 </div>
+                <button type="button" class="btn-scroll-bottom" id="btn-scroll-bottom" onclick="scrollToLogBottom()" style="display:none;">
+                    ↓ Follow live output
+                </button>
             </div>
 
             <div class="console-footer">
-                <button class="btn-stop" id="btn-stop" onclick="stopDownload()">■ STOP</button>
-                <button class="btn-download" id="btn-download" onclick="startDownload()">⬇ DOWNLOAD</button>
+                <button type="button" class="btn-stop" id="btn-stop" onclick="stopDownload()">■ STOP</button>
+                <button type="button" class="btn-download" id="btn-download" onclick="startDownload()">⬇ DOWNLOAD</button>
             </div>
 
         </div><!-- /console-col -->
@@ -349,7 +401,7 @@
 
 
     <div class="app-bar">
-        <span class="footer-legend">yt-dlp GUI v1.1 — Local web interface</span>
+        <span class="footer-legend">yt-dlp GUI v1.2 — Local web interface</span>
     </div>
 
     <script src="script.js"></script>
