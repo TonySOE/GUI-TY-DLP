@@ -65,7 +65,15 @@ progress_queues = {}
 cancel_events = {}
 active_procs = {}
 
-COOKIES_FILE = 'www.youtube.com_cookies.txt'
+COOKIES_FILES = ('www.youtube.com_cookies.txt', 'cookies.txt')
+
+
+def get_cookies_file():
+    """Devuelve el primer archivo de cookies válido disponible en la raíz."""
+    for path in COOKIES_FILES:
+        if os.path.isfile(path) and os.path.getsize(path) > 0:
+            return path
+    return None
 
 
 @app.route('/')
@@ -76,13 +84,15 @@ def index():
 @app.route('/status')
 def status_info():
     """Devuelve versión de yt-dlp y estado de herramientas del entorno."""
-    has_cookies = os.path.isfile(COOKIES_FILE) and os.path.getsize(COOKIES_FILE) > 0
+    cookies_path = get_cookies_file()
+    has_cookies = cookies_path is not None
     has_ffmpeg = shutil.which('ffmpeg') is not None
     has_deno = shutil.which('deno') is not None
     version = getattr(yt_dlp.version, '__version__', 'unknown')
     return jsonify({
         'ytdlp_version': version,
         'has_cookies': has_cookies,
+        'cookies_file': cookies_path or '',
         'has_ffmpeg': has_ffmpeg,
         'has_deno': has_deno,
         'default_dir': os.path.join(os.path.expanduser('~'), 'Downloads'),
@@ -91,7 +101,7 @@ def status_info():
 
 @app.route('/info', methods=['POST'])
 def fetch_info():
-    """Obtiene metadatos rápidos (título, miniatura, canal, duración, playlist) sin descargar."""
+    """Obtiene metadatos rápidos (título, miniatura, canal, duración, plataforma, playlist) sin descargar."""
     data = request.json or {}
     url = data.get('url', '').strip()
     if not url:
@@ -105,8 +115,9 @@ def fetch_info():
         'noplaylist': False,
         'remote_components': {'ejs:github'},
     }
-    if os.path.isfile(COOKIES_FILE) and os.path.getsize(COOKIES_FILE) > 0:
-        opts['cookiefile'] = COOKIES_FILE
+    cookies_path = get_cookies_file()
+    if cookies_path:
+        opts['cookiefile'] = cookies_path
     if shutil.which('deno'):
         opts['js_runtimes'] = {'deno': {}}
 
@@ -142,12 +153,20 @@ def fetch_info():
                 or ''
             )
 
+            platform = (
+                info.get('extractor_key')
+                or info.get('extractor')
+                or info.get('webpage_url_domain')
+                or 'Media'
+            )
+
             duration_sec = info.get('duration')
             return jsonify({
                 'title': info.get('title') or 'Untitled',
                 'uploader': uploader,
                 'duration': format_duration(duration_sec),
                 'thumbnail': thumb or '',
+                'platform': str(platform).replace('Tab', ''),
                 'is_playlist': bool(is_playlist),
                 'playlist_count': playlist_count if is_playlist else 0,
             })
@@ -414,9 +433,10 @@ def build_options(data):
         'remote_components': {'ejs:github'},
     }
 
-    # Usar cookies solo si el archivo existe y no está vacío
-    if os.path.isfile(COOKIES_FILE) and os.path.getsize(COOKIES_FILE) > 0:
-        opts['cookiefile'] = COOKIES_FILE
+    # Usar cookies solo si existe algún archivo válido (www.youtube.com_cookies.txt o cookies.txt)
+    cookies_path = get_cookies_file()
+    if cookies_path:
+        opts['cookiefile'] = cookies_path
 
     # Usar Deno si está disponible en PATH
     if shutil.which('deno'):
@@ -478,6 +498,9 @@ def build_options(data):
             'key': 'FFmpegVideoRemuxer',
             'preferedformat': video_fmt,
         })
+        # Garantiza que si el sitio (ej. TikTok/Twitter/Instagram) entrega un stream
+        # con audio integrado al hacer fallback a /best, se elimine la pista de audio (-an).
+        opts['postprocessor_args'] = {'videoremuxer': ['-an']}
 
     # — Modo 3: Audio + Video (combinados) —
     else:

@@ -323,11 +323,14 @@ async function fetchMediaPreview(url) {
             durEl.style.display = 'none';
         }
 
+        const platformPrefix = info.platform ? `${info.platform.toUpperCase()} • ` : '';
         if (info.is_playlist) {
-            badgeEl.textContent = info.playlist_count ? `PLAYLIST • ${info.playlist_count} ITEMS` : 'PLAYLIST';
+            badgeEl.textContent = info.playlist_count
+                ? `${platformPrefix}PLAYLIST • ${info.playlist_count} ITEMS`
+                : `${platformPrefix}PLAYLIST`;
             badgeEl.classList.add('playlist');
         } else {
-            badgeEl.textContent = 'VIDEO';
+            badgeEl.textContent = `${platformPrefix}VIDEO`;
             badgeEl.classList.remove('playlist');
         }
     } catch (e) {
