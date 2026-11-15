@@ -1,6 +1,9 @@
-ytdlp-gui/
-├── app.py           ← servidor Flask (backend)
+GUI-TY-DLP/
+├── app.py                ← Servidor Flask (backend, API y post-procesamiento)
 ├── templates/
-│   └── index.html   ← interfaz gráfica
-├── requirements.txt
-└── iniciar.bat      ← doble clic para arrancar
+│   ├── index.html        ← Interfaz gráfica principal
+│   ├── styles.css        ← Estilos y diseño responsive
+│   └── script.js         ← Lógica de cliente, SSE y controles
+├── requirements.txt      ← Dependencias de Python (Flask, yt-dlp, Pillow, etc.)
+├── iniciar.bat           ← Script de inicio rápido para Windows
+└── .gitignore            ← Protección de cookies y archivos locales

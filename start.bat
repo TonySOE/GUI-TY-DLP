@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 title yt-dlp GUI
 echo ============================================
 echo   yt-dlp GUI  -  Setting up...
@@ -12,11 +13,11 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: Install dependencies if not present
-python -c "import flask" >nul 2>&1
+:: Verify all required dependencies
+python -c "import flask, yt_dlp, yt_dlp_ejs, PIL" >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Installing dependencies...
-    pip install -r requirements.txt
+    echo Installing dependencies from requirements.txt...
+    python -m pip install -r requirements.txt
 )
 
 :: Open browser after a short delay to ensure server is up

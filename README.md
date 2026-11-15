@@ -1,47 +1,56 @@
 # GUI-TY-DLP
 
-A little project with the objective of using `yt-dlp` with a local graphical user interface via your web browser. 
+A local graphical user interface for **`yt-dlp`** accessible via your web browser, built with **Flask** and **Vanilla JS** (Server-Sent Events).
 
-This tool allows you to easily download videos, audio, and playlists from supported sites using a modern, dark-themed UI, without needing to memorize complex command-line arguments.
+This tool allows you to easily download videos, audio, and playlists using a modern dark-themed UI without memorizing complex command-line arguments.
 
 ## Features
-- **Easy to Use:** Clean, responsive web interface.
-- **Format & Quality Selection:** Choose between video/audio only, select codecs (AV1, VP9, H264), and set specific resolutions.
-- **Advanced yt-dlp Options:** Support for embedding metadata, thumbnails, subtitles, and handling playlists.
-- **Real-time Feedback:** Live progress bar, speed/ETA metrics, and a built-in console log via Server-Sent Events (SSE).
-- **One-Click Update:** Easily update the underlying `yt-dlp` core directly from the UI.
+
+- **3 Download Modes:**
+  - **Audio Only:** Extract audio in `mp3`, `flac`, `m4a`, `opus`, or `wav` with VBR quality selection.
+  - **Audio + Video:** Download and merge the best video and audio streams into `mp4`, `mkv`, or `webm`, choosing resolution (up to 4K) and preferred codec (`AV1`, `VP9`, `H.264`).
+  - **Video Only (Muted):** Download only the video stream without an audio track.
+- **Smart Post-Processing:**
+  - Embed metadata (`FFmpegMetadata`) and cover thumbnails (`EmbedThumbnailPP`).
+  - Automatic **1:1 square cover cropping** via Pillow for audio files.
+  - Download, convert to `.srt`, and optionally mux manual and auto-generated subtitles.
+  - Playlist support with optional track numbering (`01 -`, `02 -`) and download archive history (`archive.txt`).
+- **Real-time Console & Controls:** Live progress bar, speed/ETA metrics, real-time console log via Server-Sent Events (SSE), a **STOP** button that cancels active downloads on the server, and one-click `yt-dlp` updates.
+- **Environment Status Badges:** Automatically checks and displays in the header whether `FFmpeg`, `Deno`, and `www.youtube.com_cookies.txt` are available.
 
 ## How to Start (Windows)
-Simply double-click the `start.bat` file. 
-It will automatically:
+
+Simply double-click `start.bat` (or `iniciar.bat`). It will automatically:
 1. Check if Python is installed.
-2. Install any missing dependencies from `requirements.txt`.
+2. Verify and install any missing dependencies from `requirements.txt`.
 3. Open your default web browser to `http://localhost:5000`.
 4. Start the local Flask server.
 
-## Project Structure & File Descriptions
+## Project Structure
 
-- **`app.py`**  
-  The backend of the application built with Flask (Python). It handles the API routes, processes the user options to generate `yt-dlp` commands, runs the downloads in background threads, and streams the real-time console output and progress back to the browser.
+- **`app.py`** — Flask backend handling API routes, `yt-dlp` configuration, custom `SquareThumbnailPP` post-processor, background download threads, cancellation events, and SSE streaming.
+- **`templates/index.html`** — Main HTML layout for the graphical user interface.
+- **`templates/styles.css`** — Dark-themed responsive stylesheet.
+- **`templates/script.js`** — Frontend logic for mode switching, SSE progress/log streaming, clipboard paste, and server communication.
+- **`start.bat` / `iniciar.bat`** — Windows batch scripts to initialize dependencies and launch the app with a double-click.
+- **`requirements.txt`** — Python dependencies (`Flask`, `yt-dlp`, `yt-dlp-ejs`, `Pillow`).
 
-- **`templates/index.html`**  
-  The main HTML document. It defines the layout and structure of the Graphical User Interface, including the control panels, form inputs, and the real-time console view.
+## Requirements
 
-- **`templates/styles.css`**  
-  The stylesheet that gives the application its modern, dark-themed look. It handles the responsive design, the custom checkboxes, the layout splitting, and the console styling.
+- **Python 3.8+**
+- **FFmpeg** installed and available in your system `PATH` (required for merging streams, extracting audio, and embedding thumbnails).
+- *(Recommended)* **Deno** in your system `PATH` to solve YouTube JS challenges.
+- *(Optional)* Your own `www.youtube.com_cookies.txt` (or `cookies.txt`) in the project root for age-restricted, private, or channel-members-only videos.
 
-- **`templates/script.js`**  
-  The frontend JavaScript logic. It makes the interface interactive (like showing/hiding options based on the media type selected), handles form submissions, communicates with the Flask backend, and parses the live progress data to update the UI (progress bar and console logs).
+## Cookies Setup (Optional)
 
-- **`iniciar.bat`**  
-  A convenient Windows batch script designed to initialize the project environment and run the application with a single click.
+This repository **does not** include a cookies file for security and privacy reasons (it is ignored in `.gitignore`). Each user must export their own cookies if they need to download age-restricted or members-only videos:
 
-- **`requirements.txt`** *(Generated/Used by the script)*  
-  Contains the Python dependencies required for the project to run (primarily `Flask` and `yt-dlp`).
+1. Install a browser extension to export cookies in Netscape format (for example, **Get cookies.txt LOCALLY** for Chrome/Edge/Brave or **cookies.txt** for Firefox).
+2. *(Recommended)* Open an **Incognito/Private** window, log in to YouTube, export the cookies, and immediately close the incognito window (without clicking "Sign out") so the session stays valid longer.
+3. Save the exported file as `www.youtube.com_cookies.txt` (or `cookies.txt`) in the root folder of this project.
 
-## 🛠️ Requirements
-- Python 3.8 or higher
-- An active internet connection
+> **Security Warning:** Never share or upload your `cookies.txt` file. It contains your active session tokens, which grant access to your account.
 
 ---
-*Disclaimer: This is a tool built for personal use.*
+*Disclaimer: This tool is built for personal use.*
