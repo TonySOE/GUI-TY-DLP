@@ -40,7 +40,17 @@ Simply double-click `start.bat` (or `iniciar.bat`). It will automatically:
 - **Python 3.8+**
 - **FFmpeg** installed and available in your system `PATH` (required for merging streams, extracting audio, and embedding thumbnails).
 - *(Recommended)* **Deno** in your system `PATH` to solve YouTube JS challenges.
-- *(Optional)* `www.youtube.com_cookies.txt` in the project root for age-restricted or member-only videos.
+- *(Optional)* Your own `www.youtube.com_cookies.txt` (or `cookies.txt`) in the project root for age-restricted, private, or channel-members-only videos.
+
+## Cookies Setup (Optional)
+
+This repository **does not** include a cookies file for security and privacy reasons (it is ignored in `.gitignore`). Each user must export their own cookies if they need to download age-restricted or members-only videos:
+
+1. Install a browser extension to export cookies in Netscape format (for example, **Get cookies.txt LOCALLY** for Chrome/Edge/Brave or **cookies.txt** for Firefox).
+2. *(Recommended)* Open an **Incognito/Private** window, log in to YouTube, export the cookies, and immediately close the incognito window (without clicking "Sign out") so the session stays valid longer.
+3. Save the exported file as `www.youtube.com_cookies.txt` (or `cookies.txt`) in the root folder of this project.
+
+> **Security Warning:** Never share or upload your `cookies.txt` file. It contains your active session tokens, which grant access to your account.
 
 ---
 *Disclaimer: This tool is built for personal use.*
